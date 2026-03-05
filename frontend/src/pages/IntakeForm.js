@@ -36,8 +36,9 @@ const PRIDE_TAGS = ['ball_handling', 'defense', 'leadership', 'scoring', 'passin
 const GOALS = ['exposure', 'tracking', 'evaluation', 'media', 'recruiting_prep'];
 
 const PACKAGES = [
-  { id: 'starter', name: 'Starter', price: 99, features: ['Recruiting One-Pager', 'Verified Prospect Badge'] },
-  { id: 'development', name: 'Development', price: 199, features: ['Everything in Starter', 'Class Tracking Profile', 'Film Index'] },
+  { id: 'free', name: 'Free Preview', price: 0, features: ['Basic Profile Visible to Coaches', 'View Your Stats', 'Limited Coach Connections'], isFree: true },
+  { id: 'starter', name: 'Starter', price: 99, features: ['Recruiting One-Pager', 'Verified Prospect Badge', 'Full Coach Network Access'] },
+  { id: 'development', name: 'Development', price: 199, features: ['Everything in Starter', 'Class Tracking Profile', 'Film Index', 'Analytics Dashboard'] },
   { id: 'elite_track', name: 'Elite Track', price: 399, features: ['Everything in Development', 'Coach Referral Note', 'Mid & End Season Updates', 'Priority Support'] },
 ];
 
@@ -191,8 +192,22 @@ export default function IntakeForm() {
       if (response.data.payment_url) {
         // Redirect to Stripe checkout
         window.location.href = response.data.payment_url;
+      } else if (formData.package_selected === 'free') {
+        // Free tier - skip payment, go directly to success
+        navigate('/success', { 
+          state: { 
+            submission: response.data,
+            isFreeTier: true,
+            freeInfo: {
+              playerKey: response.data.player_key,
+              tempPassword: response.data.temp_password,
+              message: 'Your free profile is ready! You can upgrade anytime to unlock premium features.',
+              upgradeOptions: ['starter', 'development', 'elite_track']
+            }
+          } 
+        });
       } else if (response.data.payment_required && response.data.package_price > 0) {
-        // Payment required but Stripe not configured - show manual payment instructions
+        // Paid package - payment required but Stripe not configured - show manual payment instructions
         navigate('/success', { 
           state: { 
             submission: response.data,
@@ -200,12 +215,13 @@ export default function IntakeForm() {
               playerKey: response.data.player_key,
               packagePrice: response.data.package_price,
               tempPassword: response.data.temp_password,
-              message: `Your player profile has been created! Please complete payment of $${response.data.package_price} to activate your account.`
+              message: `Your player profile has been created! Please complete payment of $${response.data.package_price} to activate your account.`,
+              switchToFree: true
             }
           } 
         });
       } else {
-        // No payment required or free package - go to success page
+        // No payment required - go to success page
         navigate('/success', { state: { submission: response.data } });
       }
     } catch (error) {
@@ -836,31 +852,47 @@ export default function IntakeForm() {
         return (
           <div className="space-y-6 animate-fade-in">
             <h2 className="font-heading text-3xl font-bold uppercase tracking-tight">Select Your Package</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <p className="text-white/60">Start free and upgrade anytime to unlock premium features</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {PACKAGES.map(pkg => (
                 <button
                   key={pkg.id}
                   type="button"
                   data-testid={`package-${pkg.id}`}
                   onClick={() => updateField('package_selected', pkg.id)}
-                  className={`p-6 rounded-xl border-2 text-left transition-all ${
+                  className={`p-5 rounded-xl border-2 text-left transition-all relative ${
                     formData.package_selected === pkg.id
-                      ? 'border-[#fb6c1d] bg-[#fb6c1d]/10 shadow-[0_0_30px_rgba(251,108,29,0.2)]'
+                      ? pkg.isFree
+                        ? 'border-[#8f33e6] bg-[#8f33e6]/10 shadow-[0_0_30px_rgba(143,51,230,0.2)]'
+                        : 'border-[#fb6c1d] bg-[#fb6c1d]/10 shadow-[0_0_30px_rgba(251,108,29,0.2)]'
                       : 'border-white/10 bg-[#121212] hover:border-white/30'
                   }`}
                 >
-                  <div className="font-heading text-2xl font-bold uppercase">{pkg.name}</div>
-                  <div className="text-3xl font-bold text-[#fb6c1d] my-3">${pkg.price}</div>
-                  <ul className="space-y-2 text-sm text-white/70">
+                  {pkg.isFree && (
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#8f33e6] text-white text-xs font-bold px-3 py-1 rounded-full">
+                      NO COST
+                    </span>
+                  )}
+                  <div className="font-heading text-xl font-bold uppercase">{pkg.name}</div>
+                  <div className={`text-2xl font-bold my-2 ${pkg.isFree ? 'text-[#8f33e6]' : 'text-[#fb6c1d]'}`}>
+                    {pkg.isFree ? 'FREE' : `$${pkg.price}`}
+                  </div>
+                  <ul className="space-y-1.5 text-xs text-white/70">
                     {pkg.features.map((feature, i) => (
-                      <li key={i} className="flex items-center gap-2">
-                        <Check className="w-4 h-4 text-[#fb6c1d]" />
-                        {feature}
+                      <li key={i} className="flex items-start gap-2">
+                        <Check className={`w-3 h-3 mt-0.5 flex-shrink-0 ${pkg.isFree ? 'text-[#8f33e6]' : 'text-[#fb6c1d]'}`} />
+                        <span>{feature}</span>
                       </li>
                     ))}
                   </ul>
                 </button>
               ))}
+            </div>
+            <div className="bg-[#121212] border border-white/10 rounded-xl p-4 text-sm">
+              <p className="text-white/80">
+                <span className="font-semibold text-[#8f33e6]">Free Preview:</span> Get started immediately with a basic profile. 
+                Upgrade anytime to unlock verified status, full analytics, and priority coach connections.
+              </p>
             </div>
           </div>
         );
@@ -981,16 +1013,16 @@ export default function IntakeForm() {
               data-testid="submit-form-btn"
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="btn-secondary"
+              className={formData.package_selected === 'free' ? 'btn-primary' : 'btn-secondary'}
             >
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Submitting...
+                  {formData.package_selected === 'free' ? 'Creating Profile...' : 'Processing Payment...'}
                 </>
               ) : (
                 <>
-                  Submit & Pay
+                  {formData.package_selected === 'free' ? 'Create Free Profile' : 'Submit & Pay'}
                   <Check className="w-4 h-4 ml-2" />
                 </>
               )}

@@ -22,7 +22,13 @@ import {
   TrendingUp,
   LogOut,
   Mail,
-  Phone
+  Phone,
+  Sparkles,
+  Crown,
+  Star,
+  ArrowRight,
+  Lock as LockIcon,
+  Check
 } from 'lucide-react';
 
 export default function PlayerPortal() {
@@ -184,6 +190,20 @@ export default function PlayerPortal() {
     );
   }
 
+  // Check if player is on free tier
+  const isFreeTier = player.package_selected === 'free' || player.payment_status === 'free' || !player.package_selected;
+  
+  // Package display info
+  const packageInfo = {
+    'free': { name: 'Free Preview', color: '#8f33e6', icon: Sparkles },
+    'starter': { name: 'Starter', color: '#fb6c1d', icon: Star },
+    'development': { name: 'Development', color: '#0134bd', icon: Crown },
+    'elite_track': { name: 'Elite Track', color: '#fb6c1d', icon: Crown }
+  };
+  
+  const currentPackage = packageInfo[player.package_selected] || packageInfo['free'];
+  const PackageIcon = currentPackage.icon;
+
   return (
     <div className="min-h-screen bg-[#0b0b0b] pb-12">
       {/* Header */}
@@ -222,10 +242,21 @@ export default function PlayerPortal() {
                   {player.preferred_name || player.player_name}
                 </h1>
                 <p className="text-gray-400">Player Key: {player.player_key}</p>
-                <div className="flex items-center gap-2 mt-1">
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
                   <span className="text-sm text-[#8f33e6]">Class of {player.grad_class}</span>
                   <span className="text-gray-600">|</span>
                   <span className="text-sm text-gray-400">{player.gender}</span>
+                  <span className="text-gray-600">|</span>
+                  <span 
+                    className="text-sm px-2 py-0.5 rounded-full flex items-center gap-1"
+                    style={{ 
+                      backgroundColor: `${currentPackage.color}20`,
+                      color: currentPackage.color 
+                    }}
+                  >
+                    <PackageIcon className="w-3 h-3" />
+                    {currentPackage.name}
+                  </span>
                 </div>
               </div>
             </div>
@@ -241,10 +272,38 @@ export default function PlayerPortal() {
         </div>
       </div>
 
+      {/* Upgrade Banner for Free Tier */}
+      {isFreeTier && (
+        <div className="bg-gradient-to-r from-[#8f33e6]/20 via-[#fb6c1d]/20 to-[#8f33e6]/20 border-b border-[#8f33e6]/30">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-[#8f33e6]/20 rounded-lg">
+                  <Sparkles className="w-5 h-5 text-[#8f33e6]" />
+                </div>
+                <div>
+                  <p className="text-white font-medium">You're on the Free Preview plan</p>
+                  <p className="text-sm text-white/60">Upgrade to unlock verified status, full analytics, and priority coach connections</p>
+                </div>
+              </div>
+              <Button 
+                asChild
+                className="bg-gradient-to-r from-[#8f33e6] to-[#fb6c1d] hover:opacity-90 text-white whitespace-nowrap"
+              >
+                <Link to="/intake">
+                  Upgrade Now
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="bg-[#121212] border border-white/10">
+          <TabsList className="bg-[#121212] border border-white/10 flex-wrap h-auto">
             <TabsTrigger value="profile" className="data-[state=active]:bg-[#8f33e6] data-[state=active]:text-white">
               <User className="w-4 h-4 mr-2" />
               Profile
@@ -257,6 +316,12 @@ export default function PlayerPortal() {
               <Users className="w-4 h-4 mr-2" />
               Connections
             </TabsTrigger>
+            {isFreeTier && (
+              <TabsTrigger value="upgrade" className="data-[state=active]:bg-[#fb6c1d] data-[state=active]:text-white">
+                <Sparkles className="w-4 h-4 mr-2" />
+                Upgrade
+              </TabsTrigger>
+            )}
             <TabsTrigger value="security" className="data-[state=active]:bg-[#8f33e6] data-[state=active]:text-white">
               <Lock className="w-4 h-4 mr-2" />
               Security
@@ -587,20 +652,175 @@ export default function PlayerPortal() {
           <TabsContent value="connections">
             <Card className="bg-[#121212] border-white/10">
               <CardHeader>
-                <CardTitle className="text-white">Coach Connections</CardTitle>
+                <CardTitle className="text-white flex items-center gap-2">
+                  Coach Connections
+                  {isFreeTier && (
+                    <span className="px-2 py-0.5 bg-[#8f33e6]/20 text-[#8f33e6] text-xs rounded-full flex items-center gap-1">
+                      <LockIcon className="w-3 h-3" />
+                      Limited
+                    </span>
+                  )}
+                </CardTitle>
                 <CardDescription className="text-gray-400">
                   View coaches who have saved your profile and manage your connections
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8 text-gray-400">
-                  <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>Connection management coming soon!</p>
-                  <p className="text-sm mt-2">You'll be able to see which coaches are interested and connect with them.</p>
-                </div>
+                {isFreeTier ? (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 rounded-full bg-[#8f33e6]/10 flex items-center justify-center mx-auto mb-4">
+                      <LockIcon className="w-8 h-8 text-[#8f33e6]" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-white mb-2">Upgrade to See All Connections</h3>
+                    <p className="text-gray-400 max-w-sm mx-auto mb-4">
+                      Free Preview shows basic profile visibility. Upgrade to see which coaches have viewed and saved your profile.
+                    </p>
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                      <Button 
+                        asChild
+                        variant="outline"
+                        className="border-[#8f33e6]/50 text-[#8f33e6] hover:bg-[#8f33e6]/10"
+                      >
+                        <Link to="/intake">
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Upgrade to Starter
+                        </Link>
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-4">
+                      Free profiles are visible to coaches, but connection details require a paid plan
+                    </p>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-400">
+                    <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>Connection management coming soon!</p>
+                    <p className="text-sm mt-2">You'll be able to see which coaches are interested and connect with them.</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Upgrade Tab - Only for Free Tier */}
+          {isFreeTier && (
+            <TabsContent value="upgrade">
+              <Card className="bg-[#121212] border-white/10">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-[#fb6c1d]" />
+                    Upgrade Your Account
+                  </CardTitle>
+                  <CardDescription className="text-gray-400">
+                    Unlock premium features to maximize your recruiting potential
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Starter Package */}
+                    <div className="bg-[#1a1a1a] border border-[#fb6c1d]/30 rounded-xl p-5">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Star className="w-5 h-5 text-[#fb6c1d]" />
+                        <h3 className="text-lg font-bold text-white">Starter</h3>
+                      </div>
+                      <p className="text-3xl font-bold text-[#fb6c1d] mb-4">$99</p>
+                      <ul className="space-y-2 text-sm text-white/70 mb-4">
+                        <li className="flex items-start gap-2">
+                          <Check className="w-4 h-4 text-[#fb6c1d] mt-0.5" />
+                          Recruiting One-Pager
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <Check className="w-4 h-4 text-[#fb6c1d] mt-0.5" />
+                          Verified Prospect Badge
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <Check className="w-4 h-4 text-[#fb6c1d] mt-0.5" />
+                          Full Coach Network Access
+                        </li>
+                      </ul>
+                      <Button 
+                        asChild
+                        className="w-full bg-[#fb6c1d] hover:bg-[#fb6c1d]/90 text-white"
+                      >
+                        <Link to="/intake">Choose Starter</Link>
+                      </Button>
+                    </div>
+
+                    {/* Development Package */}
+                    <div className="bg-[#1a1a1a] border border-[#0134bd]/30 rounded-xl p-5 relative">
+                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#0134bd] text-white text-xs font-bold px-3 py-1 rounded-full">
+                        POPULAR
+                      </span>
+                      <div className="flex items-center gap-2 mb-3">
+                        <Crown className="w-5 h-5 text-[#0134bd]" />
+                        <h3 className="text-lg font-bold text-white">Development</h3>
+                      </div>
+                      <p className="text-3xl font-bold text-[#0134bd] mb-4">$199</p>
+                      <ul className="space-y-2 text-sm text-white/70 mb-4">
+                        <li className="flex items-start gap-2">
+                          <Check className="w-4 h-4 text-[#0134bd] mt-0.5" />
+                          Everything in Starter
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <Check className="w-4 h-4 text-[#0134bd] mt-0.5" />
+                          Class Tracking Profile
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <Check className="w-4 h-4 text-[#0134bd] mt-0.5" />
+                          Film Index & Analytics
+                        </li>
+                      </ul>
+                      <Button 
+                        asChild
+                        className="w-full bg-[#0134bd] hover:bg-[#0134bd]/90 text-white"
+                      >
+                        <Link to="/intake">Choose Development</Link>
+                      </Button>
+                    </div>
+
+                    {/* Elite Track Package */}
+                    <div className="bg-[#1a1a1a] border border-[#fb6c1d]/30 rounded-xl p-5">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Crown className="w-5 h-5 text-[#fb6c1d]" />
+                        <h3 className="text-lg font-bold text-white">Elite Track</h3>
+                      </div>
+                      <p className="text-3xl font-bold text-[#fb6c1d] mb-4">$399</p>
+                      <ul className="space-y-2 text-sm text-white/70 mb-4">
+                        <li className="flex items-start gap-2">
+                          <Check className="w-4 h-4 text-[#fb6c1d] mt-0.5" />
+                          Everything in Development
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <Check className="w-4 h-4 text-[#fb6c1d] mt-0.5" />
+                          Coach Referral Note
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <Check className="w-4 h-4 text-[#fb6c1d] mt-0.5" />
+                          Mid & End Season Updates
+                        </li>
+                      </ul>
+                      <Button 
+                        asChild
+                        className="w-full bg-gradient-to-r from-[#fb6c1d] to-[#8f33e6] hover:opacity-90 text-white"
+                      >
+                        <Link to="/intake">Choose Elite</Link>
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="bg-[#8f33e6]/10 border border-[#8f33e6]/20 rounded-xl p-4">
+                    <p className="text-sm text-white/80 text-center">
+                      <span className="font-semibold text-[#8f33e6]">Current Plan:</span> Free Preview
+                      <span className="mx-2">|</span>
+                      <Link to="/intake" className="text-[#fb6c1d] hover:underline">
+                        Upgrade now to unlock your full potential
+                      </Link>
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
 
           {/* Security Tab */}
           <TabsContent value="security">

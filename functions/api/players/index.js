@@ -208,10 +208,13 @@ export async function onRequestPost(context) {
       
       // Status fields
       is_verified: false,
-      payment_status: 'pending',
+      payment_status: body.package_selected === 'free' ? 'free' : 'pending',
       
       // Package info
       package_selected: body.package_selected || null,
+      
+      // Account type flags
+      is_free_tier: body.package_selected === 'free' || false,
       
       // Store intake data as JSON in coach_notes field (temporary solution)
       // This preserves the self-eval, film links, goals, etc.
@@ -260,11 +263,13 @@ export async function onRequestPost(context) {
 
     // Get package price for Stripe integration
     const packagePrices = {
+      'free': 0,
       'starter': 99,
       'development': 199,
       'elite_track': 399
     };
     const packagePrice = packagePrices[body.package_selected] || 0;
+    const isFreeTier = body.package_selected === 'free';
 
     // Return player data with payment info
     // Note: Stripe integration is not implemented yet - frontend will redirect to success page
@@ -273,11 +278,12 @@ export async function onRequestPost(context) {
         success: true, 
         player: data[0], 
         player_key: playerKey,
-        message: 'Player created successfully',
+        message: isFreeTier ? 'Free profile created successfully! Upgrade anytime.' : 'Player created successfully',
         // Stripe integration placeholder - when implemented, return payment_url
         // payment_url: 'https://stripe.com/checkout/...',
-        payment_required: packagePrice > 0,
+        payment_required: !isFreeTier && packagePrice > 0,
         package_price: packagePrice,
+        is_free_tier: isFreeTier,
         temp_password: 'TempPass123!' // TODO: Remove in production - only for testing
       }),
       { status: 201, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } }
