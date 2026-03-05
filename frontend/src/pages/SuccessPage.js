@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useLocation, useSearchParams, Link } from 'react-router-dom';
 import axios from 'axios';
-import { Check, Loader2, AlertCircle } from 'lucide-react';
+import { Check, Loader2, AlertCircle, CreditCard, Key, LogIn } from 'lucide-react';
 import { Button } from '../components/ui/button';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -12,6 +12,7 @@ export default function SuccessPage() {
   const sessionId = searchParams.get('session_id');
   const [paymentStatus, setPaymentStatus] = useState('checking');
   const [submission, setSubmission] = useState(location.state?.submission || null);
+  const [paymentInfo, setPaymentInfo] = useState(location.state?.paymentInfo || null);
 
   useEffect(() => {
     if (sessionId) {
@@ -19,7 +20,7 @@ export default function SuccessPage() {
     } else if (submission) {
       setPaymentStatus('success');
     }
-  }, [pollPaymentStatus, sessionId, submission]);
+  }, [sessionId, submission]);
 
   const pollPaymentStatus = useCallback(async (sid, attempts = 0) => {
     const maxAttempts = 10;
@@ -49,6 +50,80 @@ export default function SuccessPage() {
       setTimeout(() => pollPaymentStatus(sid, attempts + 1), pollInterval);
     }
   }, []);
+
+  // Show payment required state when Stripe is not integrated
+  if (paymentInfo && paymentStatus === 'success') {
+    return (
+      <div className="min-h-screen bg-[#0b0b0b] flex items-center justify-center p-4">
+        <div className="max-w-md w-full">
+          <div className="bg-[#121212] border border-white/10 rounded-2xl p-8 text-center">
+            <div className="w-16 h-16 rounded-full bg-[#fb6c1d]/20 flex items-center justify-center mx-auto mb-6">
+              <CreditCard className="w-8 h-8 text-[#fb6c1d]" />
+            </div>
+            <h1 className="font-heading text-3xl font-bold uppercase text-white mb-4">
+              Payment Required
+            </h1>
+            <p className="text-white/60 mb-6">
+              {paymentInfo.message}
+            </p>
+            
+            <div className="bg-[#0b0b0b] rounded-xl p-4 text-left mb-6 space-y-4">
+              <div>
+                <h3 className="font-heading font-bold text-[#fb6c1d] uppercase mb-2">Your Player Key</h3>
+                <div className="flex items-center gap-2 bg-white/5 rounded-lg p-3">
+                  <Key className="w-5 h-5 text-white/60" />
+                  <code className="text-lg font-mono text-white">{paymentInfo.playerKey}</code>
+                </div>
+                <p className="text-xs text-white/50 mt-1">Save this! You'll need it to log in.</p>
+              </div>
+              
+              <div>
+                <h3 className="font-heading font-bold text-[#fb6c1d] uppercase mb-2">Package Price</h3>
+                <p className="text-2xl font-bold text-white">${paymentInfo.packagePrice}</p>
+              </div>
+              
+              {paymentInfo.tempPassword && (
+                <div>
+                  <h3 className="font-heading font-bold text-[#fb6c1d] uppercase mb-2">Temporary Password</h3>
+                  <p className="text-sm font-mono text-white/70">{paymentInfo.tempPassword}</p>
+                  <p className="text-xs text-white/50 mt-1">Change this after your first login</p>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              <a 
+                href="mailto:support@hoopwithher.com?subject=Payment for Player Profile"
+                className="block"
+              >
+                <Button className="btn-secondary w-full">
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Contact Us to Complete Payment
+                </Button>
+              </a>
+              
+              <Link to="/player/login">
+                <Button variant="outline" className="w-full">
+                  <LogIn className="w-4 h-4 mr-2" />
+                  Log In to Your Profile
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          {/* Contact Info */}
+          <div className="mt-6 text-center">
+            <p className="text-white/40 text-sm">
+              Questions? Contact us at{' '}
+              <a href="mailto:support@hoopwithher.com" className="text-[#fb6c1d] hover:underline">
+                support@hoopwithher.com
+              </a>
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0b0b0b] flex items-center justify-center p-4">

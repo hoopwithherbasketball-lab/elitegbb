@@ -191,8 +191,21 @@ export default function IntakeForm() {
       if (response.data.payment_url) {
         // Redirect to Stripe checkout
         window.location.href = response.data.payment_url;
+      } else if (response.data.payment_required && response.data.package_price > 0) {
+        // Payment required but Stripe not configured - show manual payment instructions
+        navigate('/success', { 
+          state: { 
+            submission: response.data,
+            paymentInfo: {
+              playerKey: response.data.player_key,
+              packagePrice: response.data.package_price,
+              tempPassword: response.data.temp_password,
+              message: `Your player profile has been created! Please complete payment of $${response.data.package_price} to activate your account.`
+            }
+          } 
+        });
       } else {
-        // No payment URL, go to success page
+        // No payment required or free package - go to success page
         navigate('/success', { state: { submission: response.data } });
       }
     } catch (error) {

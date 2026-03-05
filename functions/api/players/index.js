@@ -49,6 +49,23 @@ async function supabaseQuery(env, table, method, params = {}) {
   return { data: Array.isArray(data) ? data : [data], error: null };
 }
 
+// Generate SHA-256 password hash
+async function hashPassword(password) {
+  // Generate random salt
+  const saltArray = new Uint8Array(16);
+  crypto.getRandomValues(saltArray);
+  const salt = btoa(String.fromCharCode(...saltArray));
+  
+  // Create hash: salt + SHA256(password + salt)
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password + salt);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hash = btoa(String.fromCharCode(...hashArray));
+  
+  return salt + hash;
+}
+
 // Verify any authenticated token (admin or coach)
 async function verifyAnyToken(request, env) {
   const authHeader = request.headers.get('Authorization');
@@ -93,7 +110,7 @@ export async function onRequestGet(context) {
 
     // If not admin request, only show verified players
     if (!isAdminRequest && !authHeader) {
-      params.eq = { verified: true };
+      params.eq = { is_verified: true };
     }
 
     const { data: players, error } = await supabaseQuery(env, 'players', 'GET', params);
@@ -124,7 +141,7 @@ export async function onRequestPost(context) {
   try {
     const body = await request.json();
 
-    // Required fields
+    // Required fields (matching frontend form validation)
     const required = ['player_name', 'grad_class', 'gender', 'primary_position'];
     for (const field of required) {
       if (!body[field]) {
@@ -135,32 +152,98 @@ export async function onRequestPost(context) {
       }
     }
 
-    const playerKey = generatePlayerKey();
+    // Also require parent info
+    if (!body.parent_name || !body.parent_email) {
+      return new Response(
+        JSON.stringify({ detail: 'Parent name and email are required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
 
+    const playerKey = generatePlayerKey();
+    
+    // Generate a temporary password for the player
+    // In production, you might want to email this to them or have them set it later
+    const tempPassword = await hashPassword('TempPass123!');
+
+    // Map frontend field names to database column names
+    // Frontend -> Database mapping based on PROJECT_HANDOFF.md
     const playerData = {
+      // Core fields
       player_key: playerKey,
-      player_name: body.player_name,
-      preferred_name: body.preferred_name || null,
-      dob: body.dob || null,
-      grad_class: body.grad_class,
-      gender: body.gender,
+      name: body.player_name,
+      email: body.player_email || body.parent_email, // Use player email or fallback to parent
+      password_hash: tempPassword,
+      
+      // Graduation year - convert from string to integer
+      graduation_year: body.grad_class ? parseInt(body.grad_class) : null,
+      
+      // School info
       school: body.school || null,
-      city: body.city || null,
       state: body.state || null,
-      primary_position: body.primary_position,
-      secondary_position: body.secondary_position || null,
-      jersey_number: body.jersey_number || null,
+      
+      // Stats - map field names
       height: body.height || null,
-      weight: body.weight || null,
+      weight: body.weight ? parseInt(body.weight) : null,
+      
+      // Positions - combine primary and secondary into array
+      positions: body.secondary_position 
+        ? [body.primary_position, body.secondary_position]
+        : [body.primary_position],
+      
+      // Stats that exist in DB (note the naming)
+      ppg: body.ppg ? parseFloat(body.ppg) : null,
+      apg: body.apg ? parseFloat(body.apg) : null,
+      rpg: body.rpg ? parseFloat(body.rpg) : null,
+      fg_percent: body.fg_pct ? parseFloat(body.fg_pct) : null,
+      three_p_percent: body.three_pct ? parseFloat(body.three_pct) : null,
+      
+      // Social links (if provided)
+      instagram: body.instagram_handle || null,
+      
+      // Parent info
       parent_name: body.parent_name || null,
       parent_email: body.parent_email || null,
       parent_phone: body.parent_phone || null,
-      player_email: body.player_email || null,
-      level: body.level || null,
-      team_names: body.team_names || null,
-      package_selected: body.package_selected || null,
+      
+      // Status fields
+      is_verified: false,
       payment_status: 'pending',
-      is_active: true
+      
+      // Package info
+      package_selected: body.package_selected || null,
+      
+      // Store intake data as JSON in coach_notes field (temporary solution)
+      // This preserves the self-eval, film links, goals, etc.
+      coach_notes: JSON.stringify({
+        preferred_name: body.preferred_name,
+        dob: body.dob,
+        gender: body.gender,
+        jersey_number: body.jersey_number,
+        city: body.city,
+        level: body.level,
+        team_names: body.team_names,
+        league_region: body.league_region,
+        self_evaluation: {
+          self_words: body.self_words,
+          strength: body.strength,
+          improvement: body.improvement,
+          separation: body.separation,
+          adversity_response: body.adversity_response,
+          iq_self_rating: body.iq_self_rating,
+          pride_tags: body.pride_tags,
+          player_model: body.player_model
+        },
+        film_links: body.film_links,
+        highlight_links: body.highlight_links,
+        other_socials: body.other_socials,
+        goal: body.goal,
+        colleges_interest: body.colleges_interest,
+        consent_eval: body.consent_eval,
+        consent_media: body.consent_media,
+        guardian_signature: body.guardian_signature,
+        signature_date: body.signature_date
+      })
     };
 
     const { data, error } = await supabaseQuery(env, 'players', 'POST', {
@@ -168,17 +251,39 @@ export async function onRequestPost(context) {
     });
 
     if (error) {
+      console.error('Player creation error:', error);
       return new Response(
         JSON.stringify({ detail: 'Failed to create player', error: error.message }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
+    // Get package price for Stripe integration
+    const packagePrices = {
+      'starter': 99,
+      'development': 199,
+      'elite_track': 399
+    };
+    const packagePrice = packagePrices[body.package_selected] || 0;
+
+    // Return player data with payment info
+    // Note: Stripe integration is not implemented yet - frontend will redirect to success page
     return new Response(
-      JSON.stringify({ success: true, player: data[0], player_key: playerKey }),
+      JSON.stringify({ 
+        success: true, 
+        player: data[0], 
+        player_key: playerKey,
+        message: 'Player created successfully',
+        // Stripe integration placeholder - when implemented, return payment_url
+        // payment_url: 'https://stripe.com/checkout/...',
+        payment_required: packagePrice > 0,
+        package_price: packagePrice,
+        temp_password: 'TempPass123!' // TODO: Remove in production - only for testing
+      }),
       { status: 201, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } }
     );
   } catch (err) {
+    console.error('Server error:', err);
     return new Response(
       JSON.stringify({ detail: 'Error: ' + err.message }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
