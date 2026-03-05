@@ -12,11 +12,11 @@ import {
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 const STATUSES = [
-  { id: 'requested', label: 'Requested', color: 'border-blue-500', bg: 'bg-blue-500/10' },
-  { id: 'in_review', label: 'In Review', color: 'border-yellow-500', bg: 'bg-yellow-500/10' },
-  { id: 'drafting', label: 'Drafting', color: 'border-purple-500', bg: 'bg-purple-500/10' },
-  { id: 'design', label: 'Design', color: 'border-pink-500', bg: 'bg-pink-500/10' },
-  { id: 'delivered', label: 'Delivered', color: 'border-green-500', bg: 'bg-green-500/10' },
+  { id: 'pending', label: 'Pending', color: 'border-amber-500', bg: 'bg-amber-500/10' },
+  { id: 'in_progress', label: 'In Progress', color: 'border-blue-500', bg: 'bg-blue-500/10' },
+  { id: 'review', label: 'Review', color: 'border-purple-500', bg: 'bg-purple-500/10' },
+  { id: 'completed', label: 'Completed', color: 'border-green-500', bg: 'bg-green-500/10' },
+  { id: 'cancelled', label: 'Cancelled', color: 'border-red-500', bg: 'bg-red-500/10' },
 ];
 
 export default function PipelineBoard() {
@@ -28,10 +28,13 @@ export default function PipelineBoard() {
 
   const fetchProjects = useCallback(async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/admin/projects`, {
+      const response = await axios.get(`${API_URL}/api/admin/pipeline`, {
         headers: getAuthHeaders()
       });
-      setProjects(response.data);
+      // Flatten pipeline data from nested structure
+      const pipelineData = response.data?.pipeline || {};
+      const allProjects = Object.values(pipelineData).flat();
+      setProjects(allProjects);
     } catch (error) {
       console.error('Error fetching projects:', error);
       toast.error('Failed to load projects');
@@ -47,8 +50,8 @@ export default function PipelineBoard() {
   const updateProjectStatus = async (projectId, newStatus) => {
     try {
       await axios.patch(
-        `${API_URL}/api/admin/projects/${projectId}`,
-        { status: newStatus },
+        `${API_URL}/api/admin/pipeline`,
+        { project_id: projectId, status: newStatus },
         { headers: getAuthHeaders() }
       );
       
