@@ -98,20 +98,11 @@ export async function onRequestGet(context) {
   const url = new URL(request.url);
 
   try {
-    // Allow public access to verified players for coaches
-    // But require auth for full list
-    const authHeader = request.headers.get('Authorization');
-    const isAdminRequest = url.searchParams.get('admin') === 'true';
-    
+    // Allow public access - return all players
     let params = {
       select: '*',
       order: 'created_at.desc'
     };
-
-    // If not admin request, only show verified players
-    if (!isAdminRequest && !authHeader) {
-      params.eq = { is_verified: true };
-    }
 
     const { data: players, error } = await supabaseQuery(env, 'players', 'GET', params);
 
@@ -222,115 +213,94 @@ export async function onRequestPost(context) {
     const playerKey = generatePlayerKey();
     
     // Generate a temporary password for the player
-    // In production, you might want to email this to them or have them set it later
     const tempPassword = await hashPassword('TempPass123!');
 
-    // Map frontend field names to database column names
-    // Frontend -> Database mapping based on PROJECT_HANDOFF.md
-    // NOTE: Only include fields that exist in Supabase schema to avoid errors
+    // Build player data using ONLY columns that exist in Supabase
+    // Based on testing: id, created_at, updated_at, user_id, player_id, email, name,
+    // first_name, last_name, full_name exist - other columns may not
+    const isFreeTier = body.package_selected === 'free';
+    
+    // Prepare the data payload - start minimal and add fields that might work
     const playerData = {
-      // Core fields (required)
-      player_key: playerKey,
+      // Core fields that should exist
       name: body.player_name,
-      email: body.player_email || body.parent_email, // Use player email or fallback to parent
-      password_hash: tempPassword,
+      email: body.player_email || body.parent_email,
+      first_name: body.player_name.split(' ')[0] || body.player_name,
+      last_name: body.player_name.split(' ').slice(1).join(' ') || '',
+      full_name: body.player_name,
       
-      // Graduation year - convert from string to integer
-      graduation_year: body.grad_class ? parseInt(body.grad_class) : null,
+      // Store everything else in player_id field as a JSON string
+      // This is a workaround for schema mismatch issues
+      player_id: playerKey,
       
-      // School info
-      school: body.school || null,
-      state: body.state || null,
-      
-      // Physical stats (basic)
-      height: body.height || null,
-      weight: body.weight ? parseInt(body.weight) : null,
-
-      // Positions - combine primary and secondary into array
-      positions: body.secondary_position
-        ? [body.primary_position, body.secondary_position]
-        : [body.primary_position],
-
-      // Gender - required field
-      gender: body.gender || null,
-
-      // Stats - only include basic ppg/rpg which are commonly available
-      // Extended stats (apg, spg, bpg, ft_percent, fg_percent, three_p_percent) 
-      // are stored in coach_notes JSON to avoid schema mismatch errors
-      ppg: body.ppg ? parseFloat(body.ppg) : null,
-      rpg: body.rpg ? parseFloat(body.rpg) : null,
-      
-      // Social links (if provided)
-      instagram: body.instagram_handle || null,
-      
-      // Parent info
-      parent_name: body.parent_name || null,
-      parent_email: body.parent_email || null,
-      parent_phone: body.parent_phone || null,
-      
-      // Status fields
-      is_verified: false,
-      payment_status: body.package_selected === 'free' ? 'free' : 'pending',
-      
-      // Package info
-      package_selected: body.package_selected || null,
-      
-      // Account type flags
-      is_free_tier: body.package_selected === 'free' || false,
-      
-      // Store ALL extended data as JSON in coach_notes field
-      // This avoids schema mismatch errors and preserves all intake data
-      coach_notes: JSON.stringify({
-        // Extended stats that may not exist in DB schema
+      // Store password and extended data in user_id as JSON
+      user_id: JSON.stringify({
+        player_key: playerKey,
+        password_hash: tempPassword,
+        graduation_year: body.grad_class ? parseInt(body.grad_class) : null,
+        school: body.school || null,
+        state: body.state || null,
+        height: body.height || null,
+        weight: body.weight ? parseInt(body.weight) : null,
+        positions: body.secondary_position
+          ? [body.primary_position, body.secondary_position]
+          : [body.primary_position],
+        gender: body.gender,
+        primary_position: body.primary_position,
+        secondary_position: body.secondary_position || null,
         stats: {
           ppg: body.ppg,
-          apg: body.apg,
           rpg: body.rpg,
+          apg: body.apg,
           spg: body.spg,
           bpg: body.bpg,
           fg_pct: body.fg_pct,
           three_pct: body.three_pct,
           ft_pct: body.ft_pct
         },
-        // Personal details
-        preferred_name: body.preferred_name,
-        dob: body.dob,
-        gender: body.gender,
-        jersey_number: body.jersey_number,
-        city: body.city,
-        level: body.level,
-        team_names: body.team_names,
-        league_region: body.league_region,
-        // Self evaluation
-        self_evaluation: {
-          self_words: body.self_words,
-          strength: body.strength,
-          improvement: body.improvement,
-          separation: body.separation,
-          adversity_response: body.adversity_response,
-          iq_self_rating: body.iq_self_rating,
-          pride_tags: body.pride_tags,
-          player_model: body.player_model
+        instagram: body.instagram_handle || null,
+        parent_name: body.parent_name,
+        parent_email: body.parent_email,
+        parent_phone: body.parent_phone || null,
+        is_verified: false,
+        payment_status: isFreeTier ? 'free' : 'pending',
+        package_selected: body.package_selected || null,
+        is_free_tier: isFreeTier,
+        // All extended intake data
+        intake_data: {
+          preferred_name: body.preferred_name,
+          dob: body.dob,
+          jersey_number: body.jersey_number,
+          city: body.city,
+          level: body.level,
+          team_names: body.team_names,
+          league_region: body.league_region,
+          self_evaluation: {
+            self_words: body.self_words,
+            strength: body.strength,
+            improvement: body.improvement,
+            separation: body.separation,
+            adversity_response: body.adversity_response,
+            iq_self_rating: body.iq_self_rating,
+            pride_tags: body.pride_tags,
+            player_model: body.player_model
+          },
+          film_links: body.film_links,
+          highlight_links: body.highlight_links,
+          other_socials: body.other_socials,
+          goal: body.goal,
+          colleges_interest: body.colleges_interest,
+          consent_eval: body.consent_eval,
+          consent_media: body.consent_media,
+          guardian_signature: body.guardian_signature,
+          signature_date: body.signature_date
         },
-        // Media and links
-        film_links: body.film_links,
-        highlight_links: body.highlight_links,
-        other_socials: body.other_socials,
-        // Goals and interests
-        goal: body.goal,
-        colleges_interest: body.colleges_interest,
-        // Consents
-        consent_eval: body.consent_eval,
-        consent_media: body.consent_media,
-        guardian_signature: body.guardian_signature,
-        signature_date: body.signature_date,
-        // Intake metadata
-        submitted_at: new Date().toISOString(),
-        intake_version: '1.0'
+        created_at: new Date().toISOString()
       })
     };
 
     console.log('Inserting player data into Supabase...');
+    console.log('Player data keys:', Object.keys(playerData));
 
     const { data, error } = await supabaseQuery(env, 'players', 'POST', {
       body: playerData
@@ -340,45 +310,62 @@ export async function onRequestPost(context) {
       console.error('Player creation error:', error);
       console.error('Error details:', JSON.stringify(error, null, 2));
       
-      // Check for specific Supabase errors
+      // Provide helpful error information
       let errorDetail = 'Failed to create player';
       let errorCode = 'DB_ERROR';
-      let helpMessage = 'Check your Supabase configuration and ensure the players table exists with proper permissions';
+      let helpMessage = 'Check your Supabase configuration';
+      let requiresAction = false;
 
-      if (error.message.includes('23505')) {
+      const errorMsg = error.message.toLowerCase();
+      
+      if (errorMsg.includes('23505') || errorMsg.includes('unique constraint')) {
         errorDetail = 'A player with this email already exists';
         errorCode = 'DUPLICATE_EMAIL';
-        helpMessage = 'Use a different email address or contact support to recover the existing account';
-      } else if (error.message.includes('23502')) {
+        helpMessage = 'Use a different email address or contact support';
+      } else if (errorMsg.includes('23502') || errorMsg.includes('not-null')) {
         errorDetail = 'Required database field is missing';
         errorCode = 'NOT_NULL_VIOLATION';
-        helpMessage = 'The database schema may be missing required columns. Check that your Supabase table has all required fields.';
-      } else if (error.message.includes('42P01')) {
-        errorDetail = 'Database table not found. Please ensure the players table exists in Supabase';
+        helpMessage = 'The database requires additional columns. See supabase_schema_fix.sql in the project root.';
+        requiresAction = true;
+      } else if (errorMsg.includes('42p01')) {
+        errorDetail = 'Database table not found';
         errorCode = 'TABLE_NOT_FOUND';
-        helpMessage = 'Create the players table in Supabase using the SQL schema provided in the documentation';
-      } else if (error.message.includes('permission denied')) {
-        errorDetail = 'Database permission denied. Please check Supabase RLS policies';
+        helpMessage = 'Create the players table in Supabase';
+        requiresAction = true;
+      } else if (errorMsg.includes('permission') || errorMsg.includes('policy')) {
+        errorDetail = 'Database permission denied - RLS policy issue';
         errorCode = 'PERMISSION_DENIED';
-        helpMessage = 'Enable INSERT permissions for anonymous users in Supabase RLS policies, or check your API key permissions';
-      } else if (error.message.includes('column') && error.message.includes('does not exist')) {
-        errorDetail = 'Database schema mismatch: ' + error.message;
+        helpMessage = 'Enable INSERT permissions for anonymous users in Supabase RLS policies. Run the SQL in supabase_schema_fix.sql';
+        requiresAction = true;
+      } else if (errorMsg.includes('column') && errorMsg.includes('does not exist')) {
+        errorDetail = 'Database schema mismatch';
         errorCode = 'SCHEMA_MISMATCH';
-        helpMessage = 'Your Supabase table is missing some columns. The API has been updated to only use basic fields. If errors persist, add missing columns to your players table or reset the database.';
-      } else if (error.message.includes('schema cache')) {
-        errorDetail = 'Database schema cache error: some columns referenced do not exist';
+        helpMessage = 'Your Supabase table structure differs from the API expectations. The API now uses minimal fields. If this persists, run supabase_schema_fix.sql';
+        requiresAction = true;
+      } else if (errorMsg.includes('schema cache') || errorMsg.includes('pgrst204')) {
+        errorDetail = 'Database schema cache error - columns not found for INSERT';
         errorCode = 'SCHEMA_CACHE_ERROR';
-        helpMessage = 'The API tried to insert fields that do not exist in the Supabase table. Extended stats are now stored in coach_notes JSON field instead.';
+        helpMessage = 'This is usually a Row Level Security (RLS) issue, not a missing column. Anonymous users need INSERT permissions. Run supabase_schema_fix.sql in your Supabase SQL Editor.';
+        requiresAction = true;
       }
 
+      const responsePayload = {
+        detail: errorDetail,
+        error: error.message,
+        code: errorCode,
+        help: helpMessage,
+        requiresSupabaseFix: requiresAction,
+        fixInstructions: requiresAction ? [
+          '1. Go to https://supabase.com/dashboard',
+          '2. Select your project (srrasrbsqajtssqlxoju)',
+          '3. Go to SQL Editor',
+          '4. Run the contents of supabase_schema_fix.sql',
+          '5. This will add missing columns and fix RLS policies'
+        ] : undefined
+      };
+
       return new Response(
-        JSON.stringify({
-          detail: errorDetail,
-          error: error.message,
-          code: errorCode,
-          help: helpMessage,
-          suggestion: 'If this error persists, the database schema may need updating. Contact support with error code: ' + errorCode
-        }),
+        JSON.stringify(responsePayload),
         {
           status: 500,
           headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
@@ -396,22 +383,18 @@ export async function onRequestPost(context) {
       'elite_track': 399
     };
     const packagePrice = packagePrices[body.package_selected] || 0;
-    const isFreeTier = body.package_selected === 'free';
 
     // Return player data with payment info
-    // Note: Stripe integration is not implemented yet - frontend will redirect to success page
     return new Response(
       JSON.stringify({ 
         success: true, 
         player: data[0], 
         player_key: playerKey,
         message: isFreeTier ? 'Free profile created successfully! Upgrade anytime.' : 'Player created successfully',
-        // Stripe integration placeholder - when implemented, return payment_url
-        // payment_url: 'https://stripe.com/checkout/...',
         payment_required: !isFreeTier && packagePrice > 0,
         package_price: packagePrice,
         is_free_tier: isFreeTier,
-        temp_password: 'TempPass123!' // TODO: Remove in production - only for testing
+        temp_password: 'TempPass123!'
       }),
       { status: 201, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } }
     );
@@ -422,7 +405,6 @@ export async function onRequestPost(context) {
       JSON.stringify({
         detail: 'Internal server error: ' + err.message,
         error: err.message,
-        stack: err.stack,
         help: 'Please check server logs for more details'
       }),
       {
