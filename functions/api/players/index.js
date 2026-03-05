@@ -227,8 +227,9 @@ export async function onRequestPost(context) {
 
     // Map frontend field names to database column names
     // Frontend -> Database mapping based on PROJECT_HANDOFF.md
+    // NOTE: Only include fields that exist in Supabase schema to avoid errors
     const playerData = {
-      // Core fields
+      // Core fields (required)
       player_key: playerKey,
       name: body.player_name,
       email: body.player_email || body.parent_email, // Use player email or fallback to parent
@@ -241,7 +242,7 @@ export async function onRequestPost(context) {
       school: body.school || null,
       state: body.state || null,
       
-      // Stats - map field names
+      // Physical stats (basic)
       height: body.height || null,
       weight: body.weight ? parseInt(body.weight) : null,
 
@@ -253,15 +254,11 @@ export async function onRequestPost(context) {
       // Gender - required field
       gender: body.gender || null,
 
-      // Stats that exist in DB (note the naming)
+      // Stats - only include basic ppg/rpg which are commonly available
+      // Extended stats (apg, spg, bpg, ft_percent, fg_percent, three_p_percent) 
+      // are stored in coach_notes JSON to avoid schema mismatch errors
       ppg: body.ppg ? parseFloat(body.ppg) : null,
-      apg: body.apg ? parseFloat(body.apg) : null,
       rpg: body.rpg ? parseFloat(body.rpg) : null,
-      spg: body.spg ? parseFloat(body.spg) : null,
-      bpg: body.bpg ? parseFloat(body.bpg) : null,
-      fg_percent: body.fg_pct ? parseFloat(body.fg_pct) : null,
-      three_p_percent: body.three_pct ? parseFloat(body.three_pct) : null,
-      ft_percent: body.ft_pct ? parseFloat(body.ft_pct) : null,
       
       // Social links (if provided)
       instagram: body.instagram_handle || null,
@@ -281,9 +278,21 @@ export async function onRequestPost(context) {
       // Account type flags
       is_free_tier: body.package_selected === 'free' || false,
       
-      // Store intake data as JSON in coach_notes field (temporary solution)
-      // This preserves the self-eval, film links, goals, etc.
+      // Store ALL extended data as JSON in coach_notes field
+      // This avoids schema mismatch errors and preserves all intake data
       coach_notes: JSON.stringify({
+        // Extended stats that may not exist in DB schema
+        stats: {
+          ppg: body.ppg,
+          apg: body.apg,
+          rpg: body.rpg,
+          spg: body.spg,
+          bpg: body.bpg,
+          fg_pct: body.fg_pct,
+          three_pct: body.three_pct,
+          ft_pct: body.ft_pct
+        },
+        // Personal details
         preferred_name: body.preferred_name,
         dob: body.dob,
         gender: body.gender,
@@ -292,6 +301,7 @@ export async function onRequestPost(context) {
         level: body.level,
         team_names: body.team_names,
         league_region: body.league_region,
+        // Self evaluation
         self_evaluation: {
           self_words: body.self_words,
           strength: body.strength,
@@ -302,15 +312,21 @@ export async function onRequestPost(context) {
           pride_tags: body.pride_tags,
           player_model: body.player_model
         },
+        // Media and links
         film_links: body.film_links,
         highlight_links: body.highlight_links,
         other_socials: body.other_socials,
+        // Goals and interests
         goal: body.goal,
         colleges_interest: body.colleges_interest,
+        // Consents
         consent_eval: body.consent_eval,
         consent_media: body.consent_media,
         guardian_signature: body.guardian_signature,
-        signature_date: body.signature_date
+        signature_date: body.signature_date,
+        // Intake metadata
+        submitted_at: new Date().toISOString(),
+        intake_version: '1.0'
       })
     };
 
@@ -322,22 +338,37 @@ export async function onRequestPost(context) {
 
     if (error) {
       console.error('Player creation error:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
+      
       // Check for specific Supabase errors
       let errorDetail = 'Failed to create player';
       let errorCode = 'DB_ERROR';
+      let helpMessage = 'Check your Supabase configuration and ensure the players table exists with proper permissions';
 
       if (error.message.includes('23505')) {
         errorDetail = 'A player with this email already exists';
         errorCode = 'DUPLICATE_EMAIL';
+        helpMessage = 'Use a different email address or contact support to recover the existing account';
       } else if (error.message.includes('23502')) {
         errorDetail = 'Required database field is missing';
         errorCode = 'NOT_NULL_VIOLATION';
+        helpMessage = 'The database schema may be missing required columns. Check that your Supabase table has all required fields.';
       } else if (error.message.includes('42P01')) {
         errorDetail = 'Database table not found. Please ensure the players table exists in Supabase';
         errorCode = 'TABLE_NOT_FOUND';
+        helpMessage = 'Create the players table in Supabase using the SQL schema provided in the documentation';
       } else if (error.message.includes('permission denied')) {
         errorDetail = 'Database permission denied. Please check Supabase RLS policies';
         errorCode = 'PERMISSION_DENIED';
+        helpMessage = 'Enable INSERT permissions for anonymous users in Supabase RLS policies, or check your API key permissions';
+      } else if (error.message.includes('column') && error.message.includes('does not exist')) {
+        errorDetail = 'Database schema mismatch: ' + error.message;
+        errorCode = 'SCHEMA_MISMATCH';
+        helpMessage = 'Your Supabase table is missing some columns. The API has been updated to only use basic fields. If errors persist, add missing columns to your players table or reset the database.';
+      } else if (error.message.includes('schema cache')) {
+        errorDetail = 'Database schema cache error: some columns referenced do not exist';
+        errorCode = 'SCHEMA_CACHE_ERROR';
+        helpMessage = 'The API tried to insert fields that do not exist in the Supabase table. Extended stats are now stored in coach_notes JSON field instead.';
       }
 
       return new Response(
@@ -345,7 +376,8 @@ export async function onRequestPost(context) {
           detail: errorDetail,
           error: error.message,
           code: errorCode,
-          help: 'Check your Supabase configuration and ensure the players table exists with proper permissions'
+          help: helpMessage,
+          suggestion: 'If this error persists, the database schema may need updating. Contact support with error code: ' + errorCode
         }),
         {
           status: 500,
