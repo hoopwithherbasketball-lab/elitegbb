@@ -1,3 +1,4 @@
+// Build: v2 - Cache bust for REACT_APP_BACKEND_URL fix
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "sonner";
 import { AuthProvider, useAuth } from "./context/AuthContext";
