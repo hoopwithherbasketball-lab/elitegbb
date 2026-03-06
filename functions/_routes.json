@@ -79,6 +79,11 @@
       "pattern": "/api/admin/export",
       "method": "POST,OPTIONS",
       "function": "/api/admin/export/index"
+    },
+    {
+      "pattern": "/api/admin/demo-deliverables/*/*",
+      "method": "GET,OPTIONS",
+      "function": "/api/admin/demo-deliverables/[[type]]/[sampleId]"
     }
   ]
 }

@@ -699,10 +699,116 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               )}
+
+              {/* Demo Projects Section */}
+              <div className="mb-8">
+                <h2 className="font-heading text-xl font-bold uppercase text-white mb-4">Demo Projects</h2>
+                <p className="text-white/50 text-sm mb-4">
+                  Generate sample deliverables with demo data for marketing and sales presentations.
+                  All demo documents include &quot;DEMO&quot; watermarks.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Sample 1 - Elite Guard */}
+                  <div className="bg-[#121212] border border-white/10 rounded-xl p-6 card-hover">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 rounded-lg bg-[#0134bd]/20 flex items-center justify-center">
+                        <User className="w-5 h-5 text-[#0134bd]" />
+                      </div>
+                      <div>
+                        <div className="text-white font-medium">Elite Guard</div>
+                        <div className="text-white/50 text-xs">DEMO-001 • PG/SG</div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <DemoButton type="one-pager" sampleId="sample-1" label="One-Pager" />
+                      <DemoButton type="tracking-profile" sampleId="sample-1" label="Tracking Profile" />
+                      <DemoButton type="badge" sampleId="sample-1" label="Badge" />
+                    </div>
+                  </div>
+
+                  {/* Sample 2 - Forward */}
+                  <div className="bg-[#121212] border border-white/10 rounded-xl p-6 card-hover">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 rounded-lg bg-[#fb6c1d]/20 flex items-center justify-center">
+                        <User className="w-5 h-5 text-[#fb6c1d]" />
+                      </div>
+                      <div>
+                        <div className="text-white font-medium">Forward Prospect</div>
+                        <div className="text-white/50 text-xs">DEMO-002 • SF/PF</div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <DemoButton type="one-pager" sampleId="sample-2" label="One-Pager" />
+                      <DemoButton type="tracking-profile" sampleId="sample-2" label="Tracking Profile" />
+                      <DemoButton type="badge" sampleId="sample-2" label="Badge" />
+                    </div>
+                  </div>
+
+                  {/* Sample 3 - Center */}
+                  <div className="bg-[#121212] border border-white/10 rounded-xl p-6 card-hover">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
+                        <User className="w-5 h-5 text-green-500" />
+                      </div>
+                      <div>
+                        <div className="text-white font-medium">Center Big</div>
+                        <div className="text-white/50 text-xs">DEMO-003 • C/PF</div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <DemoButton type="one-pager" sampleId="sample-3" label="One-Pager" />
+                      <DemoButton type="tracking-profile" sampleId="sample-3" label="Tracking Profile" />
+                      <DemoButton type="badge" sampleId="sample-3" label="Badge" />
+                    </div>
+                  </div>
+
+                  {/* Demo Info Card */}
+                  <div className="bg-gradient-to-br from-[#0134bd]/20 to-[#fb6c1d]/20 border border-[#0134bd]/30 rounded-xl p-6">
+                    <div className="text-white font-medium mb-2">About Demo Projects</div>
+                    <p className="text-white/50 text-sm mb-4">
+                      Use these sample documents to showcase Elite GBB deliverables to prospects and coaches.
+                    </p>
+                    <div className="text-xs text-white/40">
+                      <div className="flex items-center gap-2 mb-1">
+                        <CheckCircle className="w-3 h-3 text-green-500" />
+                        <span>PDF/HTML format</span>
+                      </div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <CheckCircle className="w-3 h-3 text-green-500" />
+                        <span>DEMO watermark included</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-3 h-3 text-green-500" />
+                        <span>Ready for presentations</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </>
           )}
         </div>
       </main>
     </div>
+  );
+}
+
+// Demo button component
+function DemoButton({ type, sampleId, label }) {
+  const API_URL = process.env.REACT_APP_BACKEND_URL;
+
+  const generateDemo = () => {
+    const url = `${API_URL}/api/admin/demo-deliverables/${type}/${sampleId}`;
+    window.open(url, '_blank');
+  };
+
+  return (
+    <button
+      onClick={generateDemo}
+      className="w-full flex items-center justify-between px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-white/70 hover:text-white text-sm transition-colors"
+    >
+      <span>{label}</span>
+      <Download className="w-4 h-4" />
+    </button>
   );
 }
