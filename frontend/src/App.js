@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { CoachAuthProvider, useCoachAuth } from "./context/CoachAuthContext";
 import { PlayerAuthProvider, usePlayerAuth } from "./context/PlayerAuthContext";
+import ImpersonationBanner from "./components/ImpersonationBanner";
 
 // Public Pages
 import Landing from "./pages/Landing";
@@ -223,6 +224,7 @@ function App() {
         <CoachAuthProvider>
           <PlayerAuthProvider>
             <AppRoutes />
+            <ImpersonationBanner />
             <Toaster
               position="top-right"
               toastOptions={{

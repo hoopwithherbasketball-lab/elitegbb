@@ -17,6 +17,15 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('hwh_token'));
   const [loading, setLoading] = useState(true);
+  
+  // Impersonation state
+  const [isImpersonating, setIsImpersonating] = useState(() => {
+    return localStorage.getItem('hwh_impersonating') === 'true';
+  });
+  const [originalAdmin, setOriginalAdmin] = useState(() => {
+    const stored = localStorage.getItem('hwh_original_admin');
+    return stored ? JSON.parse(stored) : null;
+  });
 
   useEffect(() => {
     const initAuth = async () => {
@@ -30,9 +39,14 @@ export const AuthProvider = ({ children }) => {
           setToken(storedToken);
         } catch (error) {
           console.error('Auth init error:', error);
+          // If token is invalid, also clear impersonation state
           localStorage.removeItem('hwh_token');
+          localStorage.removeItem('hwh_impersonating');
+          localStorage.removeItem('hwh_original_admin');
           setToken(null);
           setUser(null);
+          setIsImpersonating(false);
+          setOriginalAdmin(null);
         }
       }
       setLoading(false);
@@ -48,15 +62,61 @@ export const AuthProvider = ({ children }) => {
     });
     const { token: newToken, user: userData } = response.data;
     localStorage.setItem('hwh_token', newToken);
+    // Clear any previous impersonation state on normal login
+    localStorage.removeItem('hwh_impersonating');
+    localStorage.removeItem('hwh_original_admin');
+    setIsImpersonating(false);
+    setOriginalAdmin(null);
     setToken(newToken);
     setUser(userData);
     return userData;
   };
 
+  // Impersonation login - admin logs in as another user
+  const impersonateUser = async (impersonationToken, userData, adminData) => {
+    // Store the current admin token before switching
+    localStorage.setItem('hwh_token', impersonationToken);
+    localStorage.setItem('hwh_impersonating', 'true');
+    localStorage.setItem('hwh_original_admin', JSON.stringify(adminData));
+    
+    setToken(impersonationToken);
+    setUser(userData);
+    setIsImpersonating(true);
+    setOriginalAdmin(adminData);
+    
+    return userData;
+  };
+
+  // Exit impersonation and return to admin account
+  const exitImpersonation = async () => {
+    if (!originalAdmin) {
+      // Fallback to normal logout if no original admin stored
+      logout();
+      return;
+    }
+
+    // Restore admin token and user data
+    const adminToken = originalAdmin.token;
+    localStorage.setItem('hwh_token', adminToken);
+    localStorage.removeItem('hwh_impersonating');
+    localStorage.removeItem('hwh_original_admin');
+    
+    setToken(adminToken);
+    setUser(originalAdmin.user);
+    setIsImpersonating(false);
+    setOriginalAdmin(null);
+    
+    return originalAdmin.user;
+  };
+
   const logout = () => {
     localStorage.removeItem('hwh_token');
+    localStorage.removeItem('hwh_impersonating');
+    localStorage.removeItem('hwh_original_admin');
     setToken(null);
     setUser(null);
+    setIsImpersonating(false);
+    setOriginalAdmin(null);
   };
 
   const getAuthHeaders = () => ({
@@ -68,7 +128,11 @@ export const AuthProvider = ({ children }) => {
     token,
     loading,
     isAuthenticated: !!token && !!user,
+    isImpersonating,
+    originalAdmin,
     login,
+    impersonateUser,
+    exitImpersonation,
     logout,
     getAuthHeaders
   };

@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { 
   ArrowLeft, Loader2, Search, User, Calendar, 
   MapPin, ChevronRight, CheckCircle, Filter, Sparkles,
-  FileText, Image, Download, FileSpreadsheet, FileStack
+  FileText, Image, Download, FileSpreadsheet, FileStack,
+  LogIn
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -18,7 +19,7 @@ const POSITIONS = ['PG', 'SG', 'SF', 'PF', 'C'];
 const GRAD_CLASSES = ['2030', '2029', '2028', '2027', '2026', '2025'];
 
 export default function PlayerDirectory() {
-  const { getAuthHeaders } = useAuth();
+  const { getAuthHeaders, user: adminUser, impersonateUser } = useAuth();
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
@@ -166,6 +167,39 @@ export default function PlayerDirectory() {
     } catch (error) {
       console.error('Error downloading badge:', error);
       toast.error('Failed to download badge');
+    } finally {
+      setGeneratingForPlayer(null);
+    }
+  };
+
+  // Impersonate player - login as the player
+  const impersonatePlayer = async (player) => {
+    setGeneratingForPlayer(player.id);
+    try {
+      const response = await axios.post(
+        `${API_URL}/api/admin/players/${player.id}/impersonate`,
+        {},
+        { headers: getAuthHeaders() }
+      );
+
+      if (response.data && response.data.token) {
+        // Store admin data before switching
+        const adminData = {
+          token: localStorage.getItem('hwh_token'),
+          user: adminUser
+        };
+
+        // Use impersonation function from AuthContext
+        await impersonateUser(response.data.token, response.data.player, adminData);
+
+        toast.success(`Logged in as ${player.player_name}`);
+
+        // Redirect to player portal
+        window.location.href = response.data.redirect_url || '/portal';
+      }
+    } catch (error) {
+      console.error('Error impersonating player:', error);
+      toast.error(error.response?.data?.detail || 'Failed to login as player');
     } finally {
       setGeneratingForPlayer(null);
     }
@@ -367,6 +401,19 @@ export default function PlayerDirectory() {
                         title="Download badge"
                       >
                         <Image className="w-4 h-4" />
+                      </Button>
+
+                      {/* Login As Player */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => impersonatePlayer(player)}
+                        disabled={generatingForPlayer === player.id}
+                        className="text-green-400 hover:text-green-300"
+                        title="Login as this player"
+                      >
+                        <LogIn className="w-4 h-4 mr-1" />
+                        Login As
                       </Button>
 
                       {(player.package_selected === 'free' || player.payment_status === 'free' || !player.package_selected) && (

@@ -21,6 +21,11 @@
       "function": "/api/admin/coaches/[coachId]/verify"
     },
     {
+      "pattern": "/api/admin/coaches/*/impersonate",
+      "method": "POST,OPTIONS",
+      "function": "/api/admin/coaches/[coachId]/impersonate"
+    },
+    {
       "pattern": "/api/admin/players",
       "method": "GET,PATCH,OPTIONS",
       "function": "/api/admin/players/index"
@@ -29,6 +34,11 @@
       "pattern": "/api/admin/players/*/verify",
       "method": "PATCH,OPTIONS",
       "function": "/api/admin/players/[id]/verify"
+    },
+    {
+      "pattern": "/api/admin/players/*/impersonate",
+      "method": "POST,OPTIONS",
+      "function": "/api/admin/players/[id]/impersonate"
     },
     {
       "pattern": "/api/admin/deliverables/badge/*",

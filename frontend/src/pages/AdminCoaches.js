@@ -24,7 +24,7 @@ import {
 } from '../components/ui/select';
 import { 
   ArrowLeft, Loader2, GraduationCap, CheckCircle, XCircle,
-  Mail, Building, MapPin, Plus, UserPlus
+  Mail, Building, MapPin, Plus, UserPlus, LogIn
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -39,7 +39,7 @@ const US_STATES = [
 ];
 
 export default function AdminCoaches() {
-  const { getAuthHeaders } = useAuth();
+  const { getAuthHeaders, user: adminUser, impersonateUser } = useAuth();
   const [coaches, setCoaches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all, pending, verified
@@ -56,6 +56,9 @@ export default function AdminCoaches() {
     password: '',
     is_verified: true
   });
+
+  // Impersonation state
+  const [impersonatingCoachId, setImpersonatingCoachId] = useState(null);
 
   const fetchCoaches = useCallback(async () => {
     setLoading(true);
@@ -134,6 +137,39 @@ export default function AdminCoaches() {
       toast.error(error.response?.data?.error || 'Failed to create coach');
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  // Impersonate coach - login as the coach
+  const impersonateCoach = async (coach) => {
+    setImpersonatingCoachId(coach.id);
+    try {
+      const response = await axios.post(
+        `${API_URL}/api/admin/coaches/${coach.id}/impersonate`,
+        {},
+        { headers: getAuthHeaders() }
+      );
+
+      if (response.data && response.data.token) {
+        // Store admin data before switching
+        const adminData = {
+          token: localStorage.getItem('hwh_token'),
+          user: adminUser
+        };
+
+        // Use impersonation function from AuthContext
+        await impersonateUser(response.data.token, response.data.coach, adminData);
+
+        toast.success(`Logged in as ${coach.name}`);
+
+        // Redirect to coach dashboard
+        window.location.href = response.data.redirect_url || '/coach/dashboard';
+      }
+    } catch (error) {
+      console.error('Error impersonating coach:', error);
+      toast.error(error.response?.data?.detail || 'Failed to login as coach');
+    } finally {
+      setImpersonatingCoachId(null);
     }
   };
 
@@ -422,6 +458,21 @@ export default function AdminCoaches() {
                           Verify
                         </>
                       )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => impersonateCoach(coach)}
+                      disabled={impersonatingCoachId === coach.id}
+                      className="text-green-400 hover:text-green-300"
+                      title="Login as this coach"
+                    >
+                      {impersonatingCoachId === coach.id ? (
+                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                      ) : (
+                        <LogIn className="w-4 h-4 mr-1" />
+                      )}
+                      Login As
                     </Button>
                   </div>
                 </div>
