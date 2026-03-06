@@ -174,6 +174,24 @@ CREATE TABLE IF NOT EXISTS reminders (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Add missing columns if table already existed from partial run
+ALTER TABLE reminders ADD COLUMN IF NOT EXISTS project_id UUID REFERENCES projects(id) ON DELETE CASCADE;
+ALTER TABLE reminders ADD COLUMN IF NOT EXISTS reminder_type TEXT;
+ALTER TABLE reminders ADD COLUMN IF NOT EXISTS scheduled_date TIMESTAMP WITH TIME ZONE;
+ALTER TABLE reminders ADD COLUMN IF NOT EXISTS sent BOOLEAN DEFAULT FALSE;
+ALTER TABLE reminders ADD COLUMN IF NOT EXISTS sent_at TIMESTAMP WITH TIME ZONE;
+ALTER TABLE reminders ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+
+-- Update reminder_type constraint if needed
+DO $$
+BEGIN
+    ALTER TABLE reminders DROP CONSTRAINT IF EXISTS reminders_reminder_type_check;
+    ALTER TABLE reminders ADD CONSTRAINT reminders_reminder_type_check
+        CHECK (reminder_type IN ('mid_season_update', 'coach_followup', 'payment_reminder'));
+EXCEPTION WHEN OTHERS THEN
+    NULL;
+END $$;
+
 CREATE INDEX IF NOT EXISTS idx_reminders_project_id ON reminders(project_id);
 CREATE INDEX IF NOT EXISTS idx_reminders_scheduled ON reminders(scheduled_date, sent);
 CREATE INDEX IF NOT EXISTS idx_reminders_type ON reminders(reminder_type);
