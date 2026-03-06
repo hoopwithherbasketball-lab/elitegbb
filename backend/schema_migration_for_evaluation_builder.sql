@@ -62,6 +62,9 @@ ALTER TABLE projects
   ADD COLUMN IF NOT EXISTS assigned_editor UUID REFERENCES staff_users(id),
   ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP WITH TIME ZONE;
 
+-- Migrate existing status values to new enum BEFORE adding constraint
+UPDATE projects SET status = 'pending' WHERE status NOT IN ('pending', 'in_progress', 'review', 'completed', 'cancelled');
+
 -- Add constraint for status if not exists (schema version mismatch)
 -- First check if constraint exists with different values
 DO $$
