@@ -121,7 +121,8 @@ const SAMPLE_INTAKE_SUBMISSIONS = [
     film_links: ["https://youtube.com/watch?v=example1", "https://hudl.com/video/example1"],
     highlight_links: ["https://youtube.com/watch?v=highlight1"],
     level: "AAU",
-    team_names: "Atlanta Lady Panthers"
+    team_names: "Atlanta Lady Panthers",
+    iq_self_rating: 8
   },
   {
     self_words: "Strong, Relentless, Worker",
@@ -142,7 +143,8 @@ const SAMPLE_INTAKE_SUBMISSIONS = [
     film_links: ["https://youtube.com/watch?v=example2"],
     highlight_links: [],
     level: "School",
-    team_names: "Riverside Ravens"
+    team_names: "Riverside Ravens",
+    iq_self_rating: 7
   },
   {
     self_words: "Shooter, Competitor, Student",
@@ -163,7 +165,8 @@ const SAMPLE_INTAKE_SUBMISSIONS = [
     film_links: ["https://youtube.com/watch?v=example3", "https://hudl.com/video/example3"],
     highlight_links: ["https://youtube.com/watch?v=highlight3"],
     level: "AAU",
-    team_names: "Chicago Sky Elite"
+    team_names: "Chicago Sky Elite",
+    iq_self_rating: 9
   },
   {
     self_words: "Playmaker, Floor General, Quick",
@@ -184,7 +187,8 @@ const SAMPLE_INTAKE_SUBMISSIONS = [
     film_links: [],
     highlight_links: [],
     level: "School",
-    team_names: "Jefferson Jaguars"
+    team_names: "Jefferson Jaguars",
+    iq_self_rating: 8
   },
   {
     self_words: "Protector, Anchor, Presence",
@@ -205,7 +209,8 @@ const SAMPLE_INTAKE_SUBMISSIONS = [
     film_links: ["https://youtube.com/watch?v=example5"],
     highlight_links: ["https://youtube.com/watch?v=highlight5"],
     level: "AAU",
-    team_names: "Seattle Storm Youth"
+    team_names: "Seattle Storm Youth",
+    iq_self_rating: 7
   }
 ];
 
