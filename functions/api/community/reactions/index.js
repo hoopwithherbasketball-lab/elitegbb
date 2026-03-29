@@ -2,7 +2,7 @@
 // POST /api/community/reactions - Add/Remove reaction
 // GET /api/community/reactions - Get user's reactions
 
-import { verifyJWT } from '../../utils/jwt.js';
+import { verifyJWT } from '../../../utils/jwt.js';
 
 // Supabase REST API helper
 async function supabaseQuery(env, table, method, params = {}) {

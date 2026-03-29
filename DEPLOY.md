@@ -48,8 +48,39 @@ curl -X POST https://elitegbb-app.pages.dev/api/players \
 ```
 
 ## Deployment Checklist
-- [ ] Secrets configured (SUPABASE_ANON_KEY, JWT_SECRET)
-- [ ] Run local tests: `python3 tests/api/api_test_suite.py`
+
+### P0 — Required before launch
+- [ ] Run `backend/community_schema.sql` in Supabase SQL Editor
+- [ ] Cloudflare Pages production branch set to `main`
+- [ ] Cloudflare Pages root directory is empty (repo root)
+- [ ] Build output directory `frontend/build` (from `wrangler.toml`)
+- [ ] Functions directory present (`/functions`)
+- [ ] Env vars set in Cloudflare Pages (Preview + Production):
+  - [ ] `SUPABASE_URL`
+  - [ ] `SUPABASE_ANON_KEY`
+  - [ ] `SUPABASE_SERVICE_ROLE_KEY`
+  - [ ] `JWT_SECRET`
+  - [ ] `STRIPE_SECRET_KEY`
+  - [ ] `STRIPE_WEBHOOK_SECRET`
+  - [ ] `AWS_SES_REGION`
+  - [ ] `AWS_SES_ACCESS_KEY_ID`
+  - [ ] `AWS_SES_SECRET_ACCESS_KEY`
+  - [ ] `APP_URL`
 - [ ] Deploy: `npx wrangler pages deploy`
+
+### P1 — Post-deploy validation
+- [ ] Admin login works
+- [ ] Coach login works
+- [ ] Player login works
+- [ ] Stripe checkout + webhook confirmed
+- [ ] SES emails deliver (welcome + password reset)
+
+### P2 — Cleanup & monitoring
+- [ ] Fix redirect warning for `/* /index.html 200` if present
+- [ ] Rotate test credentials if exposed
+- [ ] Run `npm audit` and triage high-risk packages
+
+### Existing checks
+- [ ] Run local tests: `python3 tests/api/api_test_suite.py`
 - [ ] Test production endpoint
 - [ ] Verify no SCHEMA_CACHE_ERROR
