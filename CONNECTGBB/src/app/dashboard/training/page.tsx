@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import PageLayout from "@/components/PageLayout";
-import { supabaseClient } from "@/lib/supabaseClient";
+import { getSupabaseClient } from "@/lib/supabaseClient";
 
 type TrainingContent = {
   id: string;
@@ -26,7 +26,16 @@ export default function DashboardTrainingPage() {
 
   useEffect(() => {
     const loadContent = async () => {
-      const { data } = await supabaseClient
+      let supabase;
+
+      try {
+        supabase = getSupabaseClient();
+      } catch (error) {
+        setLoading(false);
+        return;
+      }
+
+      const { data } = await supabase
         .from("training_content")
         .select("id, title, description, content_type, level")
         .eq("is_published", true)

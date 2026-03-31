@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import PageLayout from "@/components/PageLayout";
 import { MEMBERSHIP_TIERS } from "@/lib/stripe";
 import { useAuth } from "@/components/AuthProvider";
-import { supabaseClient } from "@/lib/supabaseClient";
+import { getSupabaseClient } from "@/lib/supabaseClient";
 
 export default function BillingPage() {
   const { profile } = useAuth();
@@ -18,7 +18,16 @@ export default function BillingPage() {
       if (!profile) {
         return;
       }
-      const { data } = await supabaseClient
+
+      let supabase;
+
+      try {
+        supabase = getSupabaseClient();
+      } catch (error) {
+        return;
+      }
+
+      const { data } = await supabase
         .from("memberships")
         .select("stripe_customer_id, tier, status")
         .eq("member_id", profile.id)

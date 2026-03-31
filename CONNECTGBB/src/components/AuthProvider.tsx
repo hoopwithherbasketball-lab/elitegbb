@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
-import { supabaseClient } from "@/lib/supabaseClient";
+import { getSupabaseClient } from "@/lib/supabaseClient";
 import type { RoleKey } from "@/lib/roles";
 
 export type MemberProfile = {
@@ -31,9 +31,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<MemberProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const supabase = useMemo(() => {
+    try {
+      return getSupabaseClient();
+    } catch (error) {
+      return null;
+    }
+  }, []);
 
   const loadProfile = async (userId: string) => {
-    const { data, error } = await supabaseClient
+    if (!supabase) {
+      setProfile(null);
+      return;
+    }
+
+    const { data, error } = await supabase
       .from("member_profiles")
       .select("id, role, display_name, email, player_id, coach_id")
       .eq("auth_user_id", userId)
@@ -48,9 +60,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const init = async () => {
+      if (!supabase) {
+        setLoading(false);
+        return;
+      }
+
       const {
         data: { session: currentSession },
-      } = await supabaseClient.auth.getSession();
+      } = await supabase.auth.getSession();
       setSession(currentSession ?? null);
       if (currentSession?.user) {
         await loadProfile(currentSession.user.id);
@@ -60,9 +77,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     init();
 
+    if (!supabase) {
+      return;
+    }
+
     const {
       data: { subscription },
-    } = supabaseClient.auth.onAuthStateChange(async (_event, newSession) => {
+    } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
       setSession(newSession ?? null);
       if (newSession?.user) {
         await loadProfile(newSession.user.id);
@@ -83,15 +104,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       profile,
       loading,
       signIn: async (email, password) => {
-        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (!supabase) {
+          return { error: "Supabase client not configured." };
+        }
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
         return error ? { error: error.message } : {};
       },
       signUp: async (email, password) => {
-        const { error } = await supabaseClient.auth.signUp({ email, password });
+        if (!supabase) {
+          return { error: "Supabase client not configured." };
+        }
+        const { error } = await supabase.auth.signUp({ email, password });
         return error ? { error: error.message } : {};
       },
       signOut: async () => {
-        await supabaseClient.auth.signOut();
+        if (!supabase) {
+          return;
+        }
+        await supabase.auth.signOut();
       },
       refreshProfile: async () => {
         if (session?.user) {
@@ -99,7 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       },
     }),
-    [session, profile, loading]
+    [session, profile, loading, supabase]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
