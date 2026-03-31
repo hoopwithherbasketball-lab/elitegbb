@@ -1,9 +1,16 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const coachId = searchParams.get("coachId");
+  let supabaseAdmin;
+
+  try {
+    supabaseAdmin = getSupabaseAdmin();
+  } catch (error) {
+    return NextResponse.json({ error: "Supabase admin client not configured." }, { status: 500 });
+  }
 
   if (!coachId) {
     return NextResponse.json({ error: "coachId is required." }, { status: 400 });
@@ -35,6 +42,13 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const { coachId, playerId } = await request.json();
+  let supabaseAdmin;
+
+  try {
+    supabaseAdmin = getSupabaseAdmin();
+  } catch (error) {
+    return NextResponse.json({ error: "Supabase admin client not configured." }, { status: 500 });
+  }
 
   if (!coachId || !playerId) {
     return NextResponse.json({ error: "coachId and playerId are required." }, { status: 400 });

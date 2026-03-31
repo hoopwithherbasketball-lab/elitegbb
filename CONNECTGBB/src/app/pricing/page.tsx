@@ -4,7 +4,7 @@ import { useState } from "react";
 import PageLayout from "@/components/PageLayout";
 import { MEMBERSHIP_TIERS } from "@/lib/stripe";
 import { useAuth } from "@/components/AuthProvider";
-import { supabaseClient } from "@/lib/supabaseClient";
+import { getSupabaseClient } from "@/lib/supabaseClient";
 
 export default function PricingPage() {
   const { profile } = useAuth();
@@ -24,7 +24,17 @@ export default function PricingPage() {
     setLoadingTier(tierKey);
     setStatus(null);
 
-    const { data: membership } = await supabaseClient
+    let supabase;
+
+    try {
+      supabase = getSupabaseClient();
+    } catch (error) {
+      setStatus("Supabase client not configured.");
+      setLoadingTier(null);
+      return;
+    }
+
+    const { data: membership } = await supabase
       .from("memberships")
       .select("stripe_customer_id")
       .eq("member_id", profile.id)

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import PageLayout from "@/components/PageLayout";
-import { supabaseClient } from "@/lib/supabaseClient";
+import { getSupabaseClient } from "@/lib/supabaseClient";
 import { useAuth } from "@/components/AuthProvider";
 
 type PlayerSummary = {
@@ -28,7 +28,15 @@ export default function CoachSearchPage() {
   const [status, setStatus] = useState<string | null>(null);
 
   const loadPlayers = async () => {
-    let query = supabaseClient
+    let supabase;
+
+    try {
+      supabase = getSupabaseClient();
+    } catch (error) {
+      return;
+    }
+
+    let query = supabase
       .from("players")
       .select("id, player_name, grad_class, primary_position, state, verified")
       .order("created_at", { ascending: false })

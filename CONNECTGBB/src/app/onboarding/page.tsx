@@ -6,7 +6,7 @@ import PageLayout from "@/components/PageLayout";
 import { useAuth } from "@/components/AuthProvider";
 import { ROLE_LABELS, type RoleKey } from "@/lib/roles";
 import { MEMBERSHIP_TIERS } from "@/lib/stripe";
-import { supabaseClient } from "@/lib/supabaseClient";
+import { getSupabaseClient } from "@/lib/supabaseClient";
 
 const onboardingSteps = [
   "Select role + level",
@@ -45,7 +45,17 @@ export default function OnboardingPage() {
     setSubmitting(true);
     setStatus(null);
 
-    const { data: profileData, error: profileError } = await supabaseClient
+    let supabase;
+
+    try {
+      supabase = getSupabaseClient();
+    } catch (error) {
+      setStatus("Supabase client not configured.");
+      setSubmitting(false);
+      return;
+    }
+
+    const { data: profileData, error: profileError } = await supabase
       .from("member_profiles")
       .insert({
         auth_user_id: user.id,
@@ -65,7 +75,7 @@ export default function OnboardingPage() {
     const membershipStatus = tier === "free" ? "active" : "trialing";
     const trialEnd = tier === "free" ? null : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
 
-    const { error: membershipError } = await supabaseClient.from("memberships").insert({
+    const { error: membershipError } = await supabase.from("memberships").insert({
       member_id: profileData.id,
       tier,
       status: membershipStatus,
