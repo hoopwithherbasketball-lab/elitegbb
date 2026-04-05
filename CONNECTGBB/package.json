@@ -4,6 +4,7 @@
   "private": true,
   "description": "Cloudflare Pages root-directory wrapper for legacy CONNECTGBB setting",
   "scripts": {
-    "build": "cd ../frontend && npm ci --legacy-peer-deps && DISABLE_ESLINT_PLUGIN=true npm run build"
+    "build": "cd ../frontend && npm ci --legacy-peer-deps && DISABLE_ESLINT_PLUGIN=true npm run build",
+    "pages:build": "npm run build"
   }
 }
