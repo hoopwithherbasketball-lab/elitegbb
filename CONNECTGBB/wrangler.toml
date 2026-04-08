@@ -13,3 +13,14 @@ SUPABASE_URL = "https://srrasrbsqajtssqlxoju.supabase.co"
 
 [env.preview.vars]
 SUPABASE_URL = "https://srrasrbsqajtssqlxoju.supabase.co"
+name = "connectgbb"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+pages_build_output_dir = ".open-next"
+
+[vars]
+
+[env.production.vars]
+
+[env.preview.vars]
