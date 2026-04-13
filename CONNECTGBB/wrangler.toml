@@ -3,6 +3,7 @@ compatibility_date = "2025-05-05"
 compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
 
 pages_build_output_dir = ".open-next"
+keep_names = false
 
 [vars]
 SUPABASE_URL = "https://srrasrbsqajtssqlxoju.supabase.co"
