@@ -46,6 +46,70 @@ const routeGroups = [
   },
 ];
 
+const uiModules = [
+  {
+    title: "Navigation + Layout System",
+    description:
+      "Global nav, role-aware menus, and responsive content shells shared by public, member, coach, and admin areas.",
+    routes: ["/", "/dashboard", "/coach", "/admin"],
+    status: "Implemented",
+  },
+  {
+    title: "Account + Onboarding Flows",
+    description:
+      "Authentication touchpoints, role selection, and profile bootstrap forms for player, parent, and coach personas.",
+    routes: ["/login", "/onboarding", "/dashboard/profile", "/coach/profile"],
+    status: "In Progress",
+  },
+  {
+    title: "Discovery + Messaging",
+    description:
+      "Coach search patterns, saved shortlists, secure inbox scaffolds, and connections workflows between members.",
+    routes: ["/coach/search", "/coach/shortlist", "/coach/messages", "/dashboard/connections"],
+    status: "In Progress",
+  },
+  {
+    title: "Operations + Billing",
+    description:
+      "Admin oversight pages and Stripe-connected billing controls with shared UI primitives for secure account management.",
+    routes: ["/admin/members", "/admin/moderation", "/admin/reports", "/billing"],
+    status: "Scaffolded",
+  },
+];
+
+const apiIntegrations = [
+  {
+    domain: "Authentication",
+    summary: "Session bootstrapping and role-based guards powered by Supabase auth state.",
+    source: "Supabase Auth",
+    readiness: "Connected",
+  },
+  {
+    domain: "Profiles + Membership",
+    summary: "User profile hydration, onboarding persistence, and member-role metadata reads/writes.",
+    source: "Supabase Postgres",
+    readiness: "Connected",
+  },
+  {
+    domain: "Training + Progress",
+    summary: "Workout plans, milestones, and saved-resource mapping for player development tracking.",
+    source: "Planned API routes",
+    readiness: "Scaffolded",
+  },
+  {
+    domain: "Messaging + Moderation",
+    summary: "Coach/member conversations with moderation workflows and report escalation support.",
+    source: "Planned API routes",
+    readiness: "Scaffolded",
+  },
+  {
+    domain: "Billing + Access Control",
+    summary: "Subscription state sync and gated feature flags for premium memberships.",
+    source: "Stripe + server actions",
+    readiness: "In Progress",
+  },
+];
+
 export default function Home() {
   return (
     <div className="flex min-h-screen flex-col bg-black">
@@ -114,6 +178,75 @@ export default function Home() {
                 </ul>
               </div>
             ))}
+          </div>
+        </section>
+
+        <section className="rounded-3xl border border-white/10 bg-[#0b0b0b] p-8">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#0134bd]">Build roadmap</p>
+              <h2 className="mt-2 text-2xl font-semibold text-white">UI Modules</h2>
+              <p className="mt-2 max-w-2xl text-sm text-white/70">
+                Core interface areas are now grouped into reusable modules so route work can ship in vertical
+                slices.
+              </p>
+            </div>
+          </div>
+          <div className="mt-8 grid gap-5 md:grid-cols-2">
+            {uiModules.map((module) => (
+              <article key={module.title} className="rounded-2xl border border-white/10 bg-black/40 p-6">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-base font-semibold text-white">{module.title}</h3>
+                  <span className="rounded-full border border-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-white/60">
+                    {module.status}
+                  </span>
+                </div>
+                <p className="mt-3 text-sm text-white/70">{module.description}</p>
+                <ul className="mt-4 flex flex-wrap gap-2">
+                  {module.routes.map((route) => (
+                    <li
+                      key={route}
+                      className="rounded-md border border-white/10 bg-black px-2.5 py-1 text-xs text-white/65"
+                    >
+                      {route}
+                    </li>
+                  ))}
+                </ul>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="rounded-3xl border border-white/10 bg-[#0b0b0b] p-8">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#0134bd]">Backend wiring</p>
+            <h2 className="mt-2 text-2xl font-semibold text-white">API Integration</h2>
+            <p className="mt-2 max-w-2xl text-sm text-white/70">
+              Integration domains are mapped by data source so product and engineering can align rollout
+              sequencing.
+            </p>
+          </div>
+          <div className="mt-8 overflow-hidden rounded-2xl border border-white/10">
+            <table className="w-full border-collapse text-left">
+              <thead className="bg-black/70">
+                <tr className="text-xs uppercase tracking-[0.22em] text-white/55">
+                  <th className="px-4 py-3 font-medium">Domain</th>
+                  <th className="px-4 py-3 font-medium">Integration</th>
+                  <th className="px-4 py-3 font-medium">Source</th>
+                  <th className="px-4 py-3 font-medium">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {apiIntegrations.map((integration) => (
+                  <tr key={integration.domain} className="border-t border-white/10 bg-black/35 text-sm">
+                    <td className="px-4 py-3 font-medium text-white">{integration.domain}</td>
+                    <td className="px-4 py-3 text-white/70">{integration.summary}</td>
+                    <td className="px-4 py-3 text-white/70">{integration.source}</td>
+                    <td className="px-4 py-3 text-white/70">{integration.readiness}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </section>
       </main>
