@@ -1,28 +1,18 @@
 import PageLayout from "@/components/PageLayout";
+import { EmptyState } from "@/components/ui";
+import { getCoachConversations } from "@/lib/adapters/coach";
+import { MessagesWorkspaceClient } from "@/app/(coach)/coach/_components/MessagesWorkspaceClient";
 
-const safeguards = [
-  "Parent/guardian approval for minors",
-  "Moderation logging",
-  "Verified coach access only",
-];
+export default async function CoachMessagesPage() {
+  const conversations = await getCoachConversations();
 
-export default function CoachMessagesPage() {
   return (
-    <PageLayout
-      title="Messages"
-      subtitle="Communicate with players and parents through safe, monitored messaging channels."
-      eyebrow="Coach"
-    >
-      <section className="rounded-2xl border border-white/10 bg-[#0b0b0b] p-6">
-        <h2 className="text-lg font-semibold text-white">Safety safeguards</h2>
-        <div className="mt-4 grid gap-3 text-sm text-white/70 md:grid-cols-2">
-          {safeguards.map((item) => (
-            <div key={item} className="rounded-xl border border-white/10 bg-black/40 px-4 py-3">
-              {item}
-            </div>
-          ))}
-        </div>
-      </section>
+    <PageLayout title="Messages" subtitle="Manage coach-player conversations with safety controls." eyebrow="Coach Messaging">
+      {conversations.length === 0 ? (
+        <EmptyState title="No conversations yet" description="Start a new outreach from Search or Shortlist." />
+      ) : (
+        <MessagesWorkspaceClient conversations={conversations} />
+      )}
     </PageLayout>
   );
 }
