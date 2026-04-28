@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { ROLE_DASHBOARD_PATH, type RoleKey } from "@/lib/roles";
 import { useAuth } from "@/components/AuthProvider";
 
@@ -19,6 +21,28 @@ type AuthGuardProps = {
 
 export default function AuthGuard({ allowedRoles, children }: AuthGuardProps) {
   const { user, profile, loading } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  useEffect(() => {
+    if (loading) {
+      return;
+    }
+
+    if (!user && pathname !== "/login") {
+      router.replace("/login");
+      return;
+    }
+
+    if (user && !profile && pathname !== "/onboarding") {
+      router.replace("/onboarding");
+      return;
+    }
+
+    if (profile && !allowedRoles.includes(profile.role)) {
+      router.replace(ROLE_DASHBOARD_PATH[profile.role]);
+    }
+  }, [allowedRoles, loading, pathname, profile, router, user]);
 
   if (loading) {
     return (
@@ -31,7 +55,7 @@ export default function AuthGuard({ allowedRoles, children }: AuthGuardProps) {
   if (!user) {
     return (
       <div className="rounded-2xl border border-white/10 bg-[#0b0b0b] p-6 text-sm text-white/70">
-        <p>You must be signed in to view this page.</p>
+        <p>Redirecting to login...</p>
         <Link href="/login" className="mt-3 inline-flex text-sm font-semibold text-[#fb6c1d]">
           Go to login
         </Link>

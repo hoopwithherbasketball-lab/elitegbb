@@ -1,22 +1,21 @@
-import PageLayout from "@/components/PageLayout";
+import { SavedTabsClient } from "@/app/(member)/dashboard/_components/SavedTabsClient";
 
-const savedItems = ["Saved drills", "Saved videos", "Recruiting guides", "Events to attend"];
+const savedPlayers = [
+  { id: "sp1", title: "Player One · 2027 PG", href: "/browse" },
+  { id: "sp2", title: "Player Four · 2027 PF", href: "/browse" },
+];
+
+const savedTraining = [
+  { id: "st1", title: "Pressure Ball Handling Series", href: "/dashboard/training" },
+  { id: "st2", title: "Defensive Angles & Footwork", href: "/dashboard/training" },
+];
+
+const savedEvents = [
+  { id: "se1", title: "Elite Guard Skills Camp", href: "/events" },
+];
 
 export default function DashboardSavedPage() {
   return (
-    <PageLayout
-      title="Saved Content"
-      subtitle="Organize your saved drills, videos, and recruiting resources into playlists."
-      eyebrow="Saved"
-    >
-      <section className="grid gap-4 md:grid-cols-2">
-        {savedItems.map((item) => (
-          <div key={item} className="rounded-2xl border border-white/10 bg-[#0b0b0b] p-6">
-            <p className="text-sm font-semibold text-white">{item}</p>
-            <p className="mt-2 text-xs text-white/60">Playlist module</p>
-          </div>
-        ))}
-      </section>
-    </PageLayout>
+    <SavedTabsClient players={savedPlayers} training={savedTraining} events={savedEvents} />
   );
 }
