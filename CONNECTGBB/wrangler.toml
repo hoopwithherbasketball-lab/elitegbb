@@ -1,3 +1,9 @@
+name = "elitegbb-app"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Cloudflare Pages configuration when project root is set to CONNECTGBB
+pages_build_output_dir = "build"
 name = "connectgbb"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
