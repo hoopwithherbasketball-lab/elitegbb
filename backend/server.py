@@ -2607,6 +2607,8 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup():
+    from tasks.scheduler import start_scheduler
+    start_scheduler(interval=60)
     """Create indexes on startup and seed demo data if needed."""
     # Create indexes for MongoDB collections
     await mongo_db.players.create_index("player_key", unique=True)
